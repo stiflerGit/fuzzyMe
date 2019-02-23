@@ -2,9 +2,8 @@ package math
 
 import "math"
 
+// used for intersect
 type Tnorm func(float64, float64) float64
-
-type Snorm func(float64, float64) float64
 
 // Triangular Norms
 var Minimum = Tnorm(math.Min)
@@ -20,6 +19,9 @@ var BoundedProduct = Tnorm(
 		return math.Max(0, a+b-1)
 	},
 )
+
+// used for Unions
+type Snorm func(float64, float64) float64
 
 // Triangular CoNorms
 var Maximum = Snorm(

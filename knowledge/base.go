@@ -1,10 +1,12 @@
 package knowledge
 
-import "fuzzyMe/fuzzy/set"
+import (
+	"fuzzyMe/fuzzy"
+)
 
 //Database contains the membership functions
 type Database struct {
-	Sets []set.MembershipFunc
+	Sets []fuzzy.Set
 }
 
 //Rule base contains the fuzzy rules
