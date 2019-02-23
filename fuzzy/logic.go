@@ -8,16 +8,17 @@ import (
 type Implication func(a, b float64) float64
 
 type Rule struct {
-	props []mf // propositions
+	sets []Set // propositions
 }
 
-func (r *Rule) IF(in *Rule) *Rule {
-	r.props = append(r.props, in.props...)
+func (r *Rule) IF(in *Set) *Rule {
+	r.sets = append(r.sets, *in)
 	return r
 }
 
 func (r *Rule) THEN(in *Rule) Set {
-	min := r.props[0].Min()
+	// TODO: Improve for every type of Sets
+	min := r.sets[0].mf.Min()
 	mf, err := multiPoint(
 		point{math.Inf(-1), min},
 		point{math.Inf(1), min},
