@@ -1,9 +1,5 @@
 package fuzzy
 
-import (
-	"fmt"
-)
-
 type Universe struct {
 	name     string
 	min, max float64 // minimum and maximum value a base variable belonging to it can assume
@@ -13,30 +9,18 @@ func NewUniverse(name string, min, max float64) Universe {
 	return Universe{name, min, max}
 }
 
-func (u *Universe) NewVar(v float64) base {
-	return base{universe: u, val: v}
+func (u *Universe) NewFuzzySet(points points) (Set, error) {
+	set, err := newFuzzySet(u, points)
+	if err != nil {
+		return Set{}, err
+	}
+	return set, nil
 }
 
-type base struct {
-	universe *Universe
-	val      float64
-}
-
-func (b *base) Set(v float64) (float64, error) {
-	if v < b.universe.min {
-		return 0, fmt.Errorf("minimum value can be: %f", b.universe.min)
+func (u *Universe) NewFuzzySingleton(v float64) (Set, error) {
+	set, err := newFuzzySingleton(u, v)
+	if err != nil {
+		return Set{}, err
 	}
-	if v > b.universe.max {
-		return 0, fmt.Errorf("maximum value can be: %f", b.universe.max)
-	}
-	b.val = v
-	return b.val, nil
-}
-
-func (b *base) IS(s Set) *Rule {
-	return &Rule{
-		props: []mf{
-			s.mf,
-		},
-	}
+	return set, nil
 }

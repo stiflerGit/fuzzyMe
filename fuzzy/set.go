@@ -21,16 +21,19 @@ type Set struct {
 	mf       mf        // membership function
 }
 
-func NewFuzzySingleton(universe *Universe, x float64) Set {
+func newFuzzySingleton(universe *Universe, x float64) (Set, error) {
+	if x < universe.min || x > universe.max {
+		return Set{}, errors.New("value out of universe bounds")
+	}
 	return Set{universe: universe, mf: mf(func(u float64) float64 {
 		if u != x {
 			return 0
 		}
 		return 1
-	})}
+	})}, nil
 }
 
-func NewFuzzySet(universe *Universe, points points) (Set, error) {
+func newFuzzySet(universe *Universe, points points) (Set, error) {
 	if len(points) < 2 {
 		return Set{}, errors.New("too few points")
 	}
