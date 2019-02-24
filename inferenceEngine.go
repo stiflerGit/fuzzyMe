@@ -1,11 +1,11 @@
 package main
 
 import (
-	"fuzzyMe/fuzzy/set"
-	"fuzzyMe/knowledge"
+	"fuzzyMe/fuzzy"
 )
 
-func InferenceEngine(in set.Set, rulebase knowledge.Rulebase) set.Set {
-	// TODO: Implement
-	return nil
+func InferenceEngine(in fuzzy.FuzzySet) fuzzy.FuzzySet {
+	// TODO: Implement me
+	panic("implement me")
+	return fuzzy.FuzzySet{}
 }

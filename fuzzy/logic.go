@@ -1,53 +1,110 @@
 package fuzzy
 
 import (
-	. "fuzzyMe/math"
 	"math"
 )
 
 type Implication func(a, b float64) float64
 
-type Rule struct {
+type RuleBase []rule
+
+func NewRuleBase() RuleBase {
+	return make(RuleBase, 1)
+}
+
+func (r RuleBase) NewRule() *rule {
+	r = append(r, rule{})
+	return &r[len(r)-1]
+}
+
+func (r RuleBase) Exec() Set {
+	for _, rule := range r {
+		rule.EXEC()
+	}
+	// TODO: IMPLEMENT ME
+	panic("IMPLEMENT ME")
+	return nil
+}
+
+type rule struct {
 	sets []Set // propositions
 }
 
-func (r *Rule) IF(in *Set) *Rule {
-	r.sets = append(r.sets, *in)
+func (r *rule) IF(s Set) *rule {
+	r.sets = append(r.sets, s)
 	return r
 }
 
-func (r *Rule) THEN(in *Rule) Set {
-	// TODO: Improve for every type of Sets
-	min := r.sets[0].mf.Min()
-	mf, err := multiPoint(
-		point{math.Inf(-1), min},
-		point{math.Inf(1), min},
-	)
+func (r *rule) IS(s Set) *rule {
+	if r.sets == nil {
+		panic("first call must be to IF")
+	}
+	set, err := s.Intersect(r.sets[len(r.sets)-1])
 	if err != nil {
-		panic("err")
+		panic(err)
 	}
-	domainSet := Set{
-		mf: mf,
-	}
-	return Set{mf:mf}
-	}
+	r.sets[len(r.sets)-1] = set
+	return r
 }
 
-/* // TODO: MISO Systems
-func (r *Rule) AND() *Rule {
+func (r *rule) THEN(s Set) *rule {
+	if r.sets == nil {
+		panic("first call must be to IF")
+	}
+	// TODO: Improve for every type of Sets
+	min := math.Inf(1)
+	for _, set := range r.sets {
+		if singleton, ok := set.(Singleton); ok {
+			if singleton.y < min {
+				min = singleton.y
+			}
+		} else {
+			panic("Not a singleton: find a solution")
+		}
+	}
+	projectionSet, err := newMultiPointSet(s.Universe(), Points{{0, min}})
+	if err != nil {
+		panic(err)
+	}
+	r.sets = []Set{projectionSet}
+	return r
+}
+
+// TODO: MISO Systems
+func (r *rule) AND(s Set) *rule {
+	r.sets = append(r.sets, s)
+	return r
+	//min := 0.0
+	//for _, set := range r.sets {
+	//	if singleton, ok := set.(Singleton); ok {
+	//		if singleton.y < min {
+	//			min = singleton.y
+	//		}
+	//	} else {
+	//		panic("Not a singleton: find a solution")
+	//	}
+	//}
+}
+
+func (r *rule) OR(s Set) *rule {
 	//TODO: IMPLEMENT ME
+	panic("implement me")
 	return nil
+	//max := 0.0
+	//for _, set := range r.sets {
+	//	if singleton, ok := set.(Singleton); ok {
+	//		if singleton.y > max {
+	//			max = singleton.y
+	//		}
+	//	} else {
+	//		panic("Not a singleton: find a solution")
+	//	}
+	//}
 }
-*/
 
-func (r *Rule) OR() *Rule {
-	//TODO: IMPLEMENT ME
-	return nil
+func (r *rule) EXEC() Set {
+	return r.sets[0]
 }
-
-// and??
-
-// or
 
 // Implications
 var KleeneDienes = Implication(
@@ -71,7 +128,3 @@ var Larsen = Implication(
 	func(a, b float64) float64 {
 		return a * b
 	})
-
-var _if = mf(func(float64) float64 {
-	return 0
-})

@@ -3,24 +3,37 @@ package fuzzy
 type Universe struct {
 	name     string
 	min, max float64 // minimum and maximum value a base variable belonging to it can assume
+	// Logic* ???
 }
 
 func NewUniverse(name string, min, max float64) Universe {
 	return Universe{name, min, max}
 }
 
-func (u *Universe) NewFuzzySet(points points) (Set, error) {
-	set, err := newFuzzySet(u, points)
+func (u Universe) GetName() string {
+	return u.name
+}
+
+func (u Universe) GetMin() float64 {
+	return u.min
+}
+
+func (u Universe) GetMax() float64 {
+	return u.max
+}
+
+func (u *Universe) NewFuzzyMultipointSet(points Points) (MultiPointSet, error) {
+	set, err := newMultiPointSet(u, points)
 	if err != nil {
-		return Set{}, err
+		return MultiPointSet{}, err
 	}
 	return set, nil
 }
 
-func (u *Universe) NewFuzzySingleton(v float64) (Set, error) {
+func (u *Universe) NewFuzzySingleton(v float64) (Singleton, error) {
 	set, err := newFuzzySingleton(u, v)
 	if err != nil {
-		return Set{}, err
+		return Singleton{}, err
 	}
 	return set, nil
 }
