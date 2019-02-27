@@ -3,7 +3,7 @@ package fuzzy
 type Universe struct {
 	name     string
 	min, max float64 // minimum and maximum value a base variable belonging to it can assume
-	// Logic* ???
+	// Logic* ??? // TODO: add logic to a universe (How to Intersect, Union, ... sets belonging to the universe)
 }
 
 func NewUniverse(name string, min, max float64) Universe {

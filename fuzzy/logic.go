@@ -7,34 +7,43 @@ import (
 
 type Implication func(a, b float64) float64
 
+// ruleBase is a Set of rules
 type RuleBase []rule
 
+// create a new ruleBase
 func NewRuleBase() RuleBase {
 	return RuleBase{}
 }
 
-func (r *RuleBase) NewRule() rule {
-	*r = append(*r, nil)
-	return (*r)[len(*r)-1]
+// NewRule add a rule to the ruleBase
+func (r *RuleBase) NewRule() ruleIn {
+	*r = append(*r, rule{})
+	ruleIndex := len(*r) - 1
+	return ruleIn{
+		baseElem: &(*r)[ruleIndex],
+		_func:    nil,
+	}
 }
 
+// Exec execute all the rules in the ruleBase and return the resulting FuzzySet
 func (r *RuleBase) Exec() (Set, error) {
-	var res, set Set
 	var err error
-	if len(*r) < 1 {
-		// is it an error ???
-		return nil, nil
-	}
-	res, err = (*r)[0].EXEC()
-	if err != nil {
-		return nil, err
-	}
-	for i := 1; i < len(r); i++ {
-		set, err = r[i].EXEC()
-		if err != nil {
-			return nil, err
+	// to allow rule chaining rule can't return error, that's why rules
+	// panic. Exec capture panic and returns it
+	defer func(err *error) {
+		if r := recover(); r != nil {
+			*err = fmt.Errorf("error in execution %v", r)
 		}
-		res, err = set.Union(set)
+	}(&err)
+	// one output set for each rule
+	sets := make([]Set, len(*r))
+	for i, rule := range *r {
+		rule._func(&sets[i])
+	}
+	// union of all resulting set
+	res := sets[0]
+	for i := 1; i < len(sets); i++ {
+		res, err = res.Union(sets[i])
 		if err != nil {
 			return nil, err
 		}
@@ -42,115 +51,159 @@ func (r *RuleBase) Exec() (Set, error) {
 	return res, nil
 }
 
-type rule func(*Set) rule
+// rule represent an operation on a FuzzySet
+type rule struct {
+	baseElem *rule      // pointer to the rule in the ruleBase
+	_func    func(*Set) // function representing the logic of the rule
+}
 
-func (r rule) IF(set Set) rule {
+// a type for each rule, avoid to chain function call wrongly
+// (ex of wrong chain: rule.IF(a).IF(b))
+type (
+	ruleIn   rule
+	ruleIf   rule
+	ruleIs   rule
+	ruleThen rule
+	ruleAnd  rule
+	ruleOr   rule
+)
 
-	return func(s *Set) rule {
-		var err error
-		if s == nil || (*s) == nil {
-			panic("IF must be followed by IS")
-		}
-		*s, err = (*s).Intersect(set)
-		if err != nil {
-			panic(err)
-		}
-		return r
+// ruleIn has only IF function. So the first operation MUST be an IF
+func (r ruleIn) IF(set Set) ruleIf {
+	return ruleIf{
+		baseElem: r.baseElem,
+		_func: func(s *Set) {
+			var err error
+			*s, err = (*s).Intersect(set)
+			if err != nil {
+				panic(err)
+			}
+		}}
+}
+
+// ruleIf has only IS function. Hence, an IF operation MUST be followed by an IS
+func (r ruleIf) IS(set Set) ruleIs {
+	return ruleIs{
+		baseElem: r.baseElem,
+		_func: func(s *Set) {
+			r._func(&set)
+			*s = set
+		}}
+}
+
+// ruleIs can be followed either by an OR operation or an AND operation or a
+// THEN operation.
+// OR operation results in selecting the maximum among all propositions.
+// Proposition is the smallest piece of rule: i.e. setA.is(setB)
+func (r ruleIs) OR(set Set) ruleOr {
+	return ruleOr{
+		baseElem: r.baseElem,
+		_func: func(s *Set) {
+			var err error
+			*s, err = (*s).Intersect(set)
+			if err != nil {
+				panic(err)
+			}
+			var leftSet Set
+			r._func(&leftSet)
+			leftSingleton, leftOk := leftSet.(Singleton)
+			rightSingleton, rightOk := (*s).(Singleton)
+			if !leftOk || !rightOk {
+				panic("unimplemented AND without singleton")
+			}
+			if leftSingleton.y > rightSingleton.y {
+				*s = leftSingleton
+			}
+		}}
+}
+
+// ruleIs can be followed either by an OR operation or an AND operation or a
+// THEN operation.
+// OR operation results in selecting the minimum among all propositions.
+// Proposition is the smallest piece of rule: i.e. setA.is(setB)
+func (r ruleIs) AND(set Set) ruleAnd {
+
+	return ruleAnd{
+		baseElem: r.baseElem,
+		_func: func(s *Set) {
+			var err error
+			*s, err = (*s).Intersect(set)
+			if err != nil {
+				panic(err)
+			}
+			var leftSet Set
+			r._func(&leftSet)
+			leftSingleton, leftOk := leftSet.(Singleton)
+			rightSingleton, rightOk := (*s).(Singleton)
+			if !leftOk || !rightOk {
+				panic("unimplemented AND without singleton")
+			}
+			if leftSingleton.y < rightSingleton.y {
+				*s = leftSingleton
+			}
+		}}
+}
+
+// ruleIs can be followed either by an OR operation or an AND operation or a
+// THEN operation.
+// THEN operation results in a projection of the input set on the output
+// co-domain
+func (r ruleIs) THEN(Set) ruleThen {
+
+	return ruleThen{
+		baseElem: r.baseElem,
+		_func: func(s *Set) {
+			// TODO: Improve for every type of Sets
+			var domainSet Set
+			r._func(&domainSet)
+
+			min := math.Inf(1)
+			if singleton, ok := domainSet.(Singleton); ok {
+				min = singleton.y
+			} else {
+				panic("not a singleton: find a solution")
+			}
+			projectionSet, err := newMultiPointSet((*s).Universe(), Points{{0, min}})
+			if err != nil {
+				panic(err)
+			}
+			*s, err = (*s).Intersect(projectionSet)
+			if err != nil {
+				panic(err)
+			}
+		},
 	}
 }
 
-func (r rule) IS(set Set) rule {
-
-	return func(s *Set) rule {
-		r(&set)
-		*s = set
-		return r
-	}
+// ruleThen has only IS function. Then operation represent the logic
+// implication
+func (r ruleThen) IS(set Set) {
+	*r.baseElem = rule{
+		baseElem: nil,
+		_func: func(s *Set) {
+			r._func(&set)
+			*s = set
+		}}
 }
 
-func (r rule) THEN(set Set) rule {
-
-	return func(s *Set) rule {
-		if s == nil || (*s) == nil {
-			panic("THEN must be followed by IS")
-		}
-		// TODO: Improve for every type of Sets
-		var domainSet Set
-		r(&domainSet)
-		min := math.Inf(1)
-		if singleton, ok := domainSet.(Singleton); ok {
-			min = singleton.y
-		} else {
-			panic("not a singleton: find a solution")
-		}
-		projectionSet, err := newMultiPointSet((*s).Universe(), Points{{0, min}})
-		if err != nil {
-			panic(err)
-		}
-		*s, err = (*s).Intersect(projectionSet)
-		if err != nil {
-			panic(err)
-		}
-		return r
-	}
+// ruleAnd has only IS function. Hence, an IF operation MUST be followed by an IS
+func (r ruleAnd) IS(set Set) ruleIs {
+	return ruleIs{
+		baseElem: r.baseElem,
+		_func: func(s *Set) {
+			r._func(&set)
+			*s = set
+		}}
 }
 
-func (r rule) EXEC() (set Set, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("%v", r)
-		}
-	}()
-	r(&set)
-	return set, err
-}
-
-func (r rule) AND(set Set) rule {
-	return func(s *Set) rule {
-		if s == nil || *s == nil {
-			panic("AND must be followed by IS")
-		}
-		var err error
-		*s, err = (*s).Intersect(set)
-		if err != nil {
-			panic(err)
-		}
-		var leftSet Set
-		r(&leftSet)
-		leftSingleton, leftOk := leftSet.(Singleton)
-		rightSingleton, rightOk := (*s).(Singleton)
-		if !leftOk || !rightOk {
-			panic("unimplemented AND without singleton")
-		}
-		if leftSingleton.y < rightSingleton.y {
-			*s = leftSingleton
-		}
-		return r
-	}
-}
-
-func (r rule) OR(set Set) rule {
-	return func(s *Set) rule {
-		if s == nil || *s == nil {
-			panic("OR must be followed by IS")
-		}
-		var err error
-		*s, err = (*s).Intersect(set)
-		if err != nil {
-			panic(err)
-		}
-		var leftSet Set
-		r(&leftSet)
-		leftSingleton, leftOk := leftSet.(Singleton)
-		rightSingleton, rightOk := (*s).(Singleton)
-		if !leftOk || !rightOk {
-			panic("unimplemented AND without singleton")
-		}
-		if leftSingleton.y > rightSingleton.y {
-			*s = leftSingleton
-		}
-		return r
-	}
+// ruleOr has only IS function. Hence, an IF operation MUST be followed by an IS
+func (r ruleOr) IS(set Set) ruleIs {
+	return ruleIs{
+		baseElem: r.baseElem,
+		_func: func(s *Set) {
+			r._func(&set)
+			*s = set
+		}}
 }
 
 // Implications

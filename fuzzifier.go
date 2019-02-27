@@ -37,6 +37,10 @@ func centerOfGravity(s Set) float64 {
 		nominator += xi * mu
 		muSum += mu
 	}
+	// if muSum equal to 0 means the set is 0 in all points
+	if muSum == 0 {
+		return 0.0
+	}
 	return nominator / muSum
 }
 
