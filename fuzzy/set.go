@@ -3,8 +3,8 @@ package fuzzy
 import (
 	"errors"
 	"fmt"
-	. "fuzzyMe/math"
 	"math"
+	. "github.com/stiflerGit/fuzzyMe/math"
 )
 
 type Set interface {

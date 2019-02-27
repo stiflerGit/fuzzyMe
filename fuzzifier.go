@@ -1,7 +1,7 @@
 package main
 
 import (
-	. "fuzzyMe/fuzzy"
+	. "github.com/stiflerGit/fuzzyMe/fuzzy"
 )
 
 const (
