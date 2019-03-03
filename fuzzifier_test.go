@@ -2,8 +2,9 @@ package main
 
 import (
 	"fmt"
-	"fuzzyMe/fuzzy"
 	"testing"
+
+	"github.com/stiflerGit/fuzzyMe/fuzzy"
 )
 
 var (
