@@ -95,46 +95,6 @@ func init() {
 }
 
 func TestDefuzzify(t *testing.T) {
-	/*
-		touristVar, err = TOURISTS.NewFuzzySingleton(0)
-		ruleBase := fuzzy.NewRuleBase()
-		//r.IF(temperatureVar.IS(Hot)).THEN(touristVar.IS(High))
-		rule1 := ruleBase.NewRule().IF(temperatureVar).IS(Hot).OR(sunshineVar).IS(Sunny).THEN(touristVar).IS(High)
-		rule2 := ruleBase.NewRule().IF(temperatureVar).IS(Warm).AND(sunshineVar).IS(PartSunny).THEN(touristVar).IS(Medium)
-		rule3 := ruleBase.NewRule().IF(temperatureVar).IS(Cold).AND(sunshineVar).IS(Cloudy).THEN(touristVar).IS(Low)
-		//rule := r.IS(Hot).THEN(touristVar).IS(High)
-		res1 := Defuzzify(rule1.EXEC(), COG)
-		res2 := Defuzzify(rule2.EXEC(), COG)
-		res3 := Defuzzify(rule3.EXEC(), COG)
-		fmt.Print(res1, res2, res3)
-		fmt.Println("###############################################################################")
-		fmt.Println(temperatureVar, Cold, Warm, Hot, sunshineVar, Cloudy, PartSunny, Sunny, touristVar, Low, Medium, High)
-		fmt.Println("###############################################################################")*/
-}
-
-func TestDefuzzify2(t *testing.T) {
-	/*
-		touristVar, err = TOURISTS.NewFuzzySingleton(40)
-		ruleBase := fuzzy.NewRuleBase()
-
-		//rule := ruleBase.NewRule().IF(touristVar).IS(Medium)
-		ruleBase.NewRule().IF(temperatureVar).IS(Warm).THEN(touristVar).IS(Medium)
-		ruleBase.NewRule().IF(temperatureVar).IS(Warm).AND(sunshineVar).IS(PartSunny).THEN(touristVar).IS(Medium)
-		ruleBase.NewRule().IF(temperatureVar).IS(Hot).OR(sunshineVar).IS(Sunny).THEN(touristVar).IS(High)
-
-		//rule := ruleBase.NewRule().IF(temperatureVar).AND(PartSunny)
-
-		resSet, err := ruleBase.Exec()
-		if err != nil {
-			panic(err)
-		}
-
-		res := Defuzzify(resSet, COG)
-		fmt.Print(res)
-	*/
-}
-
-func TestDefuzzify3(t *testing.T) {
 	touristVar, err = TOURISTS.NewFuzzySingleton(40)
 	ruleBase := fuzzy.NewRuleBase()
 
