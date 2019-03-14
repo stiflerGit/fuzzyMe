@@ -15,8 +15,27 @@ func NewRuleBase() RuleBase {
 	return RuleBase{}
 }
 
+// TODO: document
+// see https://github.com/golang/lint/issues/210
+type (
+	RuleIn interface {
+		IF(Set) RuleConjunction
+	}
+	RuleIs interface {
+		AND(Set) RuleConjunction
+		OR(Set) RuleConjunction
+		THEN(Set) RuleThen
+	}
+	RuleConjunction interface {
+		IS(Set) RuleIs
+	}
+	RuleThen interface {
+		IS(Set)
+	}
+)
+
 // NewRule add a rule to the ruleBase
-func (r *RuleBase) NewRule() ruleIn {
+func (r *RuleBase) NewRule() RuleIn {
 	*r = append(*r, rule{})
 	ruleIndex := len(*r) - 1
 	return ruleIn{
@@ -69,7 +88,7 @@ type (
 )
 
 // ruleIn has only IF function. So the first operation MUST be an IF
-func (r ruleIn) IF(set Set) ruleIf {
+func (r ruleIn) IF(set Set) RuleConjunction {
 	return ruleIf{
 		baseElem: r.baseElem,
 		_func: func(s *Set) {
@@ -82,7 +101,7 @@ func (r ruleIn) IF(set Set) ruleIf {
 }
 
 // ruleIf has only IS function. Hence, an IF operation MUST be followed by an IS
-func (r ruleIf) IS(set Set) ruleIs {
+func (r ruleIf) IS(set Set) RuleIs {
 	return ruleIs{
 		baseElem: r.baseElem,
 		_func: func(s *Set) {
@@ -95,7 +114,7 @@ func (r ruleIf) IS(set Set) ruleIs {
 // THEN operation.
 // OR operation results in selecting the maximum among all propositions.
 // Proposition is the smallest piece of rule: i.e. setA.is(setB)
-func (r ruleIs) OR(set Set) ruleOr {
+func (r ruleIs) OR(set Set) RuleConjunction {
 	return ruleOr{
 		baseElem: r.baseElem,
 		_func: func(s *Set) {
@@ -121,7 +140,7 @@ func (r ruleIs) OR(set Set) ruleOr {
 // THEN operation.
 // OR operation results in selecting the minimum among all propositions.
 // Proposition is the smallest piece of rule: i.e. setA.is(setB)
-func (r ruleIs) AND(set Set) ruleAnd {
+func (r ruleIs) AND(set Set) RuleConjunction {
 
 	return ruleAnd{
 		baseElem: r.baseElem,
@@ -148,7 +167,7 @@ func (r ruleIs) AND(set Set) ruleAnd {
 // THEN operation.
 // THEN operation results in a projection of the input set on the output
 // co-domain
-func (r ruleIs) THEN(Set) ruleThen {
+func (r ruleIs) THEN(Set) RuleThen {
 
 	return ruleThen{
 		baseElem: r.baseElem,
@@ -187,7 +206,7 @@ func (r ruleThen) IS(set Set) {
 }
 
 // ruleAnd has only IS function. Hence, an IF operation MUST be followed by an IS
-func (r ruleAnd) IS(set Set) ruleIs {
+func (r ruleAnd) IS(set Set) RuleIs {
 	return ruleIs{
 		baseElem: r.baseElem,
 		_func: func(s *Set) {
@@ -197,7 +216,7 @@ func (r ruleAnd) IS(set Set) ruleIs {
 }
 
 // ruleOr has only IS function. Hence, an IF operation MUST be followed by an IS
-func (r ruleOr) IS(set Set) ruleIs {
+func (r ruleOr) IS(set Set) RuleIs {
 	return ruleIs{
 		baseElem: r.baseElem,
 		_func: func(s *Set) {
