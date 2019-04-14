@@ -1,5 +1,10 @@
 package fuzzy
 
+const (
+	MaxMembershipDegree = float64(1.0)
+	MinMembershipDegree = float64(0.0)
+)
+
 type Universe struct {
 	name     string
 	min, max float64 // minimum and maximum value a base variable belonging to it can assume

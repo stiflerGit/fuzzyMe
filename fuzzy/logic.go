@@ -5,6 +5,14 @@ import (
 	"math"
 )
 
+type Set interface {
+	Universe() *Universe
+	MembershipDegree(float64) (float64, error)
+	Intersect(Set) (Set, error)
+	Union(Set) (Set, error)
+	Complement() Set
+}
+
 type Implication func(a, b float64) float64
 
 // ruleBase is a Set of rules
@@ -17,28 +25,28 @@ func NewRuleBase() RuleBase {
 
 // TODO: document
 // see https://github.com/golang/lint/issues/210
-type (
-	RuleIn interface {
-		IF(Set) RuleConjunction
-	}
-	RuleIs interface {
-		AND(Set) RuleConjunction
-		OR(Set) RuleConjunction
-		THEN(Set) RuleThen
-	}
-	RuleConjunction interface {
-		IS(Set) RuleIs
-	}
-	RuleThen interface {
-		IS(Set)
-	}
-)
+//type (
+//	RuleIn interface {
+//		IF(Set) RuleConjunction
+//	}
+//	RuleIs interface {
+//		AND(Set) RuleConjunction
+//		OR(Set) RuleConjunction
+//		THEN(Set) RuleThen
+//	}
+//	RuleConjunction interface {
+//		IS(Set) RuleIs
+//	}
+//	RuleThen interface {
+//		IS(Set)
+//	}
+//)
 
 // NewRule add a rule to the ruleBase
 func (r *RuleBase) NewRule() RuleIn {
 	*r = append(*r, rule{})
 	ruleIndex := len(*r) - 1
-	return ruleIn{
+	return RuleIn{
 		baseElem: &(*r)[ruleIndex],
 		_func:    nil,
 	}
@@ -79,17 +87,17 @@ type rule struct {
 // a type for each rule, avoid to chain function call wrongly
 // (ex of wrong chain: rule.IF(a).IF(b))
 type (
-	ruleIn   rule
-	ruleIf   rule
-	ruleIs   rule
-	ruleThen rule
-	ruleAnd  rule
-	ruleOr   rule
+	RuleIn rule
+	RuleIf rule
+	RuleIs rule
+	RuleThen rule
+	RuleAnd rule
+	RuleOr rule
 )
 
-// ruleIn has only IF function. So the first operation MUST be an IF
-func (r ruleIn) IF(set Set) RuleConjunction {
-	return ruleIf{
+// RuleIn has only IF function. So the first operation MUST be an IF
+func (r RuleIn) IF(set Set) RuleIf {
+	return RuleIf{
 		baseElem: r.baseElem,
 		_func: func(s *Set) {
 			var err error
@@ -100,9 +108,9 @@ func (r ruleIn) IF(set Set) RuleConjunction {
 		}}
 }
 
-// ruleIf has only IS function. Hence, an IF operation MUST be followed by an IS
-func (r ruleIf) IS(set Set) RuleIs {
-	return ruleIs{
+// RuleIf has only IS function. Hence, an IF operation MUST be followed by an IS
+func (r RuleIf) IS(set Set) RuleIs {
+	return RuleIs{
 		baseElem: r.baseElem,
 		_func: func(s *Set) {
 			r._func(&set)
@@ -110,12 +118,12 @@ func (r ruleIf) IS(set Set) RuleIs {
 		}}
 }
 
-// ruleIs can be followed either by an OR operation or an AND operation or a
+// RuleIs can be followed either by an OR operation or an AND operation or a
 // THEN operation.
 // OR operation results in selecting the maximum among all propositions.
 // Proposition is the smallest piece of rule: i.e. setA.is(setB)
-func (r ruleIs) OR(set Set) RuleConjunction {
-	return ruleOr{
+func (r RuleIs) OR(set Set) RuleOr {
+	return RuleOr{
 		baseElem: r.baseElem,
 		_func: func(s *Set) {
 			var err error
@@ -136,13 +144,13 @@ func (r ruleIs) OR(set Set) RuleConjunction {
 		}}
 }
 
-// ruleIs can be followed either by an OR operation or an AND operation or a
+// RuleIs can be followed either by an OR operation or an AND operation or a
 // THEN operation.
 // OR operation results in selecting the minimum among all propositions.
 // Proposition is the smallest piece of rule: i.e. setA.is(setB)
-func (r ruleIs) AND(set Set) RuleConjunction {
+func (r RuleIs) AND(set Set) RuleAnd {
 
-	return ruleAnd{
+	return RuleAnd{
 		baseElem: r.baseElem,
 		_func: func(s *Set) {
 			var err error
@@ -163,13 +171,13 @@ func (r ruleIs) AND(set Set) RuleConjunction {
 		}}
 }
 
-// ruleIs can be followed either by an OR operation or an AND operation or a
+// RuleIs can be followed either by an OR operation or an AND operation or a
 // THEN operation.
 // THEN operation results in a projection of the input set on the output
 // co-domain
-func (r ruleIs) THEN(Set) RuleThen {
+func (r RuleIs) THEN(Set) RuleThen {
 
-	return ruleThen{
+	return RuleThen{
 		baseElem: r.baseElem,
 		_func: func(s *Set) {
 			// TODO: Improve for every type of Sets
@@ -194,9 +202,9 @@ func (r ruleIs) THEN(Set) RuleThen {
 	}
 }
 
-// ruleThen has only IS function. Then operation represent the logic
+// RuleThen has only IS function. Then operation represent the logic
 // implication
-func (r ruleThen) IS(set Set) {
+func (r RuleThen) IS(set Set) {
 	*r.baseElem = rule{
 		baseElem: nil,
 		_func: func(s *Set) {
@@ -205,9 +213,9 @@ func (r ruleThen) IS(set Set) {
 		}}
 }
 
-// ruleAnd has only IS function. Hence, an IF operation MUST be followed by an IS
-func (r ruleAnd) IS(set Set) RuleIs {
-	return ruleIs{
+// RuleAnd has only IS function. Hence, an IF operation MUST be followed by an IS
+func (r RuleAnd) IS(set Set) RuleIs {
+	return RuleIs{
 		baseElem: r.baseElem,
 		_func: func(s *Set) {
 			r._func(&set)
@@ -215,9 +223,9 @@ func (r ruleAnd) IS(set Set) RuleIs {
 		}}
 }
 
-// ruleOr has only IS function. Hence, an IF operation MUST be followed by an IS
-func (r ruleOr) IS(set Set) RuleIs {
-	return ruleIs{
+// RuleOr has only IS function. Hence, an IF operation MUST be followed by an IS
+func (r RuleOr) IS(set Set) RuleIs {
+	return RuleIs{
 		baseElem: r.baseElem,
 		_func: func(s *Set) {
 			r._func(&set)

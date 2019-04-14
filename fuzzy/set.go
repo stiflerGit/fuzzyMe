@@ -7,14 +7,6 @@ import (
 	"math"
 )
 
-type Set interface {
-	Universe() *Universe
-	MembershipDegree(float64) (float64, error)
-	Intersect(Set) (Set, error)
-	Union(Set) (Set, error)
-	Complement() Set
-}
-
 // membership function gives the degree to which an element belongs to a fuzzy
 // set. It characterizes the fuzzy set itself.
 type mf func(float64) float64
